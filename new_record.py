@@ -2,10 +2,15 @@ import streamlit as st
 from datetime import datetime
 from ai_service import AIService
 from json_logger import JsonLogger
+import os
+from dotenv import load_dotenv, dotenv_values 
+
+
 
 class NewRegistration:
     def __init__(self):
-        self.API_KEY = "API"
+        load_dotenv() 
+        self.API_KEY = os.getenv("API_KEY")
     
 
     def analysis_result(self, res_json):
