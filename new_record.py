@@ -2,6 +2,7 @@ import streamlit as st
 from datetime import datetime
 from ai_service import AIService
 from json_logger import JsonLogger
+from log_check import LogCheck
 from config import API_KEY
 
 
@@ -10,6 +11,7 @@ from config import API_KEY
 class NewRegistration:
     def __init__(self):
         # .env dosyasından api aldıktan sonra alınan keyi getirir
+        #self.API_KEY = os.getenv("API_KEY")
         self.API_KEY = API_KEY
        
 
@@ -31,9 +33,9 @@ class NewRegistration:
 
     def main(self):
         # Sınıfları ve tarih değişkenini başlat
-        ai_manager = AIService(self.API_KEY)
+        
         logger = JsonLogger()
-        date_str = datetime.now().strftime('%Y-%m-%d')
+        logger_check = LogCheck()
 
         # Sayfa başlığı
         st.title("Günlük Gelişim Asistanı")
@@ -43,10 +45,14 @@ class NewRegistration:
         user_input = st.text_area("Bugün ne öğrendin?", height=150, placeholder="Örn: Bugün OpenCV kütüphanesini öğrendim...")
 
         # Bugün zaten kayıt yapılmış mı kontrol eder
-        if logger.get_last_log_efficient() == date_str:
-            st.markdown("Bu gün analiz yaptın geçmiş kayıtları kontrol et.")
+        if not logger_check.daily_limit_check():
+            st.markdown("Bu günkü limit analizine ulaştın geçmiş kayıtları kontrol et.")
+        elif not logger_check.log_size_check():
+            st.markdown("Maksimum dosya boyutuna ulaştınız!")
         else:
-            if st.button("Analiz Et"):
+            ai_manager = AIService(self.API_KEY)
+            
+            if st.button("Analiz Et", key="analiz_btn_1"):
                 if user_input:
                     #burada kullanıcıya sistemin arka planda çalıştığını göstermek için beklemesi gerektiğini anlaması için yüklenme ibaresi koyar
                     with st.spinner("Gemini düşünüyor..."):
@@ -60,7 +66,7 @@ class NewRegistration:
                             if inspection:
                                 print("Veriler başarıyla Kaydedildi")
                             else:
-                                "Verier Kaydedilemedi"
+                                print("Veriler Kaydedilemedi")
 
                             # Analiz Sonuçlarını gösterir
                             self.analysis_result(res_json)

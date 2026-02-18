@@ -1,11 +1,13 @@
 import json
 import os
 from datetime import datetime
+from config import LOG_FILE
 
 class JsonLogger:
-    def __init__(self, filename='gelisim_verileri.jsonl'):
-        self.filename = filename
+    def __init__(self):
+        self.filename = LOG_FILE
     
+
     def log_access(self, res_json):
         # Veriyi hazırlayıp kaydeder
         try:
@@ -27,25 +29,6 @@ class JsonLogger:
             print(f"HATA: {e}")
             #hata aldığı için false döner 
             return False   
-    
-
-    def get_last_log_efficient(self):
-        # Son satırdaki verinin tarihini getirir bu sayede tarih karşılaştırması yapılabilir
-        last_line = None
-        try:
-            with open(self.filename, 'r', encoding='utf-8') as f:
-                # Dosyayı satır satır döner, en son son satırı tutar
-                for line in f:
-                    last_line = line
-            
-            if last_line:
-                log_data = json.loads(last_line)
-                registration_date = log_data["tarih"]
-
-                return registration_date
-        except Exception as e:
-            print(f"Hata: {e}")
-        return None
     
 
     def load_data(self):

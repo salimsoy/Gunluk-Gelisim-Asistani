@@ -1,5 +1,6 @@
 import google.generativeai as genai
 import json
+from config import MODEL_NAME
 
 class AIService:
     def __init__(self, API_KEY):
@@ -7,7 +8,7 @@ class AIService:
     
     def model_selection(self):
         # modeli oluşturur
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel(MODEL_NAME)
         return model
 
     def prompter(self, user_input):
@@ -36,8 +37,12 @@ class AIService:
     def regulator(self, response):
         # json metnini temizletip anlamlı hale getirir
         clean_text = response.text.replace("```json", "").replace("```", "").strip()
-        res_json = json.loads(clean_text)
+        try:
+            res_json = json.loads(clean_text)
+        except json.JSONDecodeError:
+            raise ValueError("Model geçerli JSON döndürmedi.")
         return res_json
+        
     
     def main(self, user_input):
         model = self.model_selection()
