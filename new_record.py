@@ -2,16 +2,16 @@ import streamlit as st
 from datetime import datetime
 from ai_service import AIService
 from json_logger import JsonLogger
-import os
-from dotenv import load_dotenv, dotenv_values 
+from config import API_KEY
+
 
 
 
 class NewRegistration:
     def __init__(self):
-        load_dotenv() 
-        self.API_KEY = os.getenv("API_KEY")
-    
+        # .env dosyasından api aldıktan sonra alınan keyi getirir
+        self.API_KEY = API_KEY
+       
 
     def analysis_result(self, res_json):
         st.divider()
