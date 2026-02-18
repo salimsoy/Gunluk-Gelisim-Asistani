@@ -121,11 +121,16 @@ import streamlit as st
 from datetime import datetime
 from ai_service import AIService
 from json_logger import JsonLogger
+from config import API_KEY
+
+
+
 
 class NewRegistration:
     def __init__(self):
-        self.API_KEY = "API"
-    
+        # .env dosyasından api aldıktan sonra alınan keyi getirir
+        self.API_KEY = API_KEY
+       
 
     def analysis_result(self, res_json):
         st.divider()
@@ -184,7 +189,6 @@ class NewRegistration:
 
                 else:
                     st.warning("Lütfen önce bir şeyler yazın!")
-
 
 ```
 ## 3. Geçmiş Kayıtlar Modülü (past_record.py)
@@ -365,4 +369,13 @@ class JsonLogger:
                     except json.JSONDecodeError:
                         continue # Bozuk satır varsa atlar
         return data
+```
+### 6. API Alıcı (config.py)
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+# API keyi alır
+API_KEY = os.getenv("API_KEY")
 ```
