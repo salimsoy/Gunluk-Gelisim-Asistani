@@ -92,7 +92,7 @@ Sadece bugünün tarihine sahip kayıtları sayar; tarih değiştiği anda döng
 * Dosya Boyutu Kontrolü (log_size_check): os.path.getsize ile dosyanın fiziksel boyutunu bayt cinsinden ölçer ve .env dosyasında belirlenen MB limitiyle karşılaştırır.
 
 ### 4. Config (Yapılandırma)
-* Projenin API_KEY, MODEL_NAME, DAILY_LIMIT gibi ayarlarını kodun içine gömmek (hard-code) yerine .env dosyasından dinamik olarak çeker. Bu, kodun güvenliğini ve taşınabilirliğini artırır.
+* Projenin API_KEY, MODEL_NAME, DAILY_LIMIT, MAX_LOG_SIZE_MB, LOG_FILE gibi ayarlarını kodun içine gömmek (hard-code) yerine .env dosyasından dinamik olarak çeker. Bu, kodun güvenliğini ve taşınabilirliğini artırır.
 
 ---
 
