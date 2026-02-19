@@ -44,6 +44,8 @@ Sistem, **Sorumlulukların Ayrılığı (Separation of Concerns)** ilkesine gör
 ### 2. Alt Modüller (Servis Katmanı)
 * **`AIService`:** Yapay zeka ile iletişimi sağlayan servis.
 * **`JsonLogger`:** Log işlemlerini yöneten sınıf.
+*  **`LogCheck`:** Sistemin sınırlarını denetleyen güvenlik ve validasyon modülüdür.
+*  **`Config`:** Ortam değişkenlerini (.env) yükleyen ve global sabitleri yöneten yapılandırma dosyasıdır.
 
 ---
 
@@ -83,6 +85,14 @@ Kullanıcıdan "Bugün ne öğrendin?" sorusuna cevap alır, bu metni işler ve 
 * **İşleyişi:**
     * **Kayıt:** Verileri `JSON Lines (JSONL)` formatında, her satıra bir JSON objesi gelecek şekilde `append` (ekleme) modunda yazar. UTF-8 kodlaması ile Türkçe karakter sorununu çözer.
     * **Okuma:** Dosyayı satır satır okuyarak bellek dostu bir işlem gerçekleştirir ve uygulamanın istedği bu gün analiz yapıldı mı kontrolünün yapılması için en son eklenen veririn tarihini bize verir.
+### 3. LogCheck (Validasyon Modülü)
+* Sistem kaynaklarını ve API kotalarını korumak için iki kritik kontrol yapar:
+* Günlük Limit Kontrolü (daily_limit_check): Dosyayı baştan sona okumak yerine, tersten (sondan başa) okuyarak performans optimizasyonu sağlar.
+Sadece bugünün tarihine sahip kayıtları sayar; tarih değiştiği anda döngüyü kırar. Bu sayede dosya boyutu büyüse bile kontrol hızı düşmez.
+* Dosya Boyutu Kontrolü (log_size_check): os.path.getsize ile dosyanın fiziksel boyutunu bayt cinsinden ölçer ve .env dosyasında belirlenen MB limitiyle karşılaştırır.
+
+### 4. Config (Yapılandırma)
+* Projenin API_KEY, MODEL_NAME, DAILY_LIMIT gibi ayarlarını kodun içine gömmek (hard-code) yerine .env dosyasından dinamik olarak çeker. Bu, kodun güvenliğini ve taşınabilirliğini artırır.
 
 ---
 
