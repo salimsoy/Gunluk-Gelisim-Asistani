@@ -121,6 +121,7 @@ import streamlit as st
 from datetime import datetime
 from ai_service import AIService
 from json_logger import JsonLogger
+from log_check import LogCheck
 from config import API_KEY
 
 
@@ -129,6 +130,7 @@ from config import API_KEY
 class NewRegistration:
     def __init__(self):
         # .env dosyasından api aldıktan sonra alınan keyi getirir
+        #self.API_KEY = os.getenv("API_KEY")
         self.API_KEY = API_KEY
        
 
@@ -150,9 +152,9 @@ class NewRegistration:
 
     def main(self):
         # Sınıfları ve tarih değişkenini başlat
-        ai_manager = AIService(self.API_KEY)
+        
         logger = JsonLogger()
-        date_str = datetime.now().strftime('%Y-%m-%d')
+        logger_check = LogCheck()
 
         # Sayfa başlığı
         st.title("Günlük Gelişim Asistanı")
@@ -162,10 +164,14 @@ class NewRegistration:
         user_input = st.text_area("Bugün ne öğrendin?", height=150, placeholder="Örn: Bugün OpenCV kütüphanesini öğrendim...")
 
         # Bugün zaten kayıt yapılmış mı kontrol eder
-        if logger.get_last_log_efficient() == date_str:
-            st.markdown("Bu gün analiz yaptın geçmiş kayıtları kontrol et.")
+        if not logger_check.daily_limit_check():
+            st.markdown("Bu günkü limit analizine ulaştın geçmiş kayıtları kontrol et.")
+        elif not logger_check.log_size_check():
+            st.markdown("Maksimum dosya boyutuna ulaştınız!")
         else:
-            if st.button("Analiz Et"):
+            ai_manager = AIService(self.API_KEY)
+            
+            if st.button("Analiz Et", key="analiz_btn_1"):
                 if user_input:
                     #burada kullanıcıya sistemin arka planda çalıştığını göstermek için beklemesi gerektiğini anlaması için yüklenme ibaresi koyar
                     with st.spinner("Gemini düşünüyor..."):
@@ -179,7 +185,7 @@ class NewRegistration:
                             if inspection:
                                 print("Veriler başarıyla Kaydedildi")
                             else:
-                                "Verier Kaydedilemedi"
+                                print("Veriler Kaydedilemedi")
 
                             # Analiz Sonuçlarını gösterir
                             self.analysis_result(res_json)
@@ -189,6 +195,8 @@ class NewRegistration:
 
                 else:
                     st.warning("Lütfen önce bir şeyler yazın!")
+
+
 
 ```
 ## 3. Geçmiş Kayıtlar Modülü (past_record.py)
@@ -255,6 +263,7 @@ class PastRegistration:
 ```python
 import google.generativeai as genai
 import json
+from config import MODEL_NAME
 
 class AIService:
     def __init__(self, API_KEY):
@@ -262,7 +271,7 @@ class AIService:
     
     def model_selection(self):
         # modeli oluşturur
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = genai.GenerativeModel(MODEL_NAME)
         return model
 
     def prompter(self, user_input):
@@ -291,8 +300,12 @@ class AIService:
     def regulator(self, response):
         # json metnini temizletip anlamlı hale getirir
         clean_text = response.text.replace("```json", "").replace("```", "").strip()
-        res_json = json.loads(clean_text)
+        try:
+            res_json = json.loads(clean_text)
+        except json.JSONDecodeError:
+            raise ValueError("Model geçerli JSON döndürmedi.")
         return res_json
+        
     
     def main(self, user_input):
         model = self.model_selection()
@@ -305,17 +318,21 @@ class AIService:
 
         return res_json
 
+
+
 ```
 ### 5. Log Yöneticisi (json_logger.py)
 ```python
 import json
 import os
 from datetime import datetime
+from config import LOG_FILE
 
 class JsonLogger:
-    def __init__(self, filename='gelisim_verileri.jsonl'):
-        self.filename = filename
+    def __init__(self):
+        self.filename = LOG_FILE
     
+
     def log_access(self, res_json):
         # Veriyi hazırlayıp kaydeder
         try:
@@ -339,25 +356,6 @@ class JsonLogger:
             return False   
     
 
-    def get_last_log_efficient(self):
-        # Son satırdaki verinin tarihini getirir bu sayede tarih karşılaştırması yapılabilir
-        last_line = None
-        try:
-            with open(self.filename, 'r', encoding='utf-8') as f:
-                # Dosyayı satır satır döner, en son son satırı tutar
-                for line in f:
-                    last_line = line
-            
-            if last_line:
-                log_data = json.loads(last_line)
-                registration_date = log_data["tarih"]
-
-                return registration_date
-        except Exception as e:
-            print(f"Hata: {e}")
-        return None
-    
-
     def load_data(self):
         # JSONL dosyasındaki tüm verileri okur ve liste olarak döner.
         data = []
@@ -376,6 +374,62 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-# API keyi alır
+
+# .env dosyasında değişkenleri çeker
 API_KEY = os.getenv("API_KEY")
+MODEL_NAME = os.getenv("MODEL_NAME")
+LOG_FILE = os.getenv("LOG_FILE")
+MAX_LOG_SIZE_MB = int(os.getenv("MAX_LOG_SIZE_MB"))
+DAILY_LIMIT = int(os.getenv("DAILY_LIMIT"))
+
+```
+
+### 7. Log Kontrolcü (log_check.py)
+```python
+import json
+import os
+from datetime import datetime
+from config import MAX_LOG_SIZE_MB, DAILY_LIMIT, LOG_FILE
+
+
+class LogCheck:
+    def __init__(self):
+        self.filename = LOG_FILE
+    
+    def log_size_check(self):
+        # maksimum dosya boyutuna ulaşılıp ulaşılmadığını kontrol eder
+        try:
+            file_size = os.path.getsize(self.filename)
+            if MAX_LOG_SIZE_MB * (1024 * 1024) <= file_size:
+                raise ValueError(f"Dosya maksimum {MAX_LOG_SIZE_MB} mb olabilir")
+            return True
+        except ValueError:
+            return False
+    
+
+    def daily_limit_check(self):
+        # günlük limit değeri aşıp aşmadığını kontrol eder
+        date_str = datetime.now().strftime('%Y-%m-%d')
+        counter = 0
+        try:
+            with open(self.filename, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+              
+            # satırları tersten kontrol eder tarihleri bu gün ile aynı olanları kontrol eder ve ilk farklı tarihle karşılaşınca çıkar 
+            for line in reversed(lines):   
+                if line:
+                    log_data = json.loads(line)
+                    registration_date = log_data["tarih"]
+                    if date_str == registration_date:
+                        counter += 1
+                    else:
+                        break
+
+            if counter >= DAILY_LIMIT:
+                return False
+            return True
+
+        except Exception as e:
+            print(f"Hata: {e}")
+        return None
 ```
